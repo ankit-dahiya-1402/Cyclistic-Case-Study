@@ -1,0 +1,192 @@
+#Read the data set
+
+Cyclistic <- read.csv("C:/Users/91880/OneDrive/Desktop/Cyclistic/Cyclistic_21.csv")
+View(Cyclistic)
+
+# Make a copy of a data set
+cyclistic_data <- Cyclistic
+View(cyclistic_data)
+
+
+# Calling library of required package
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(leaflet)
+
+# Providing date columns required format
+cyclistic_data <- cyclistic_data %>% mutate(started_at = ymd_hms(started_at))
+cyclistic_data <- cyclistic_data %>% mutate(ended_at = ymd_hms(ended_at))
+
+# Extracting hour from date column and saving in a separate column
+cyclistic_data$start_hour <- hour(cyclistic_data$started_at)
+cyclistic_data$end_hour <- hour(cyclistic_data$ended_at)
+
+# Extracting name of weekdays from date column and saving in a separate column
+cyclistic_data$start_day <- weekdays(cyclistic_data$started_at)
+cyclistic_data$end_day <- weekdays(cyclistic_data$ended_at)
+
+# Extracting name of months from date column and saving in a separate column
+cyclistic_data$month_name <- months(cyclistic_data$started_at)
+
+
+# Figure 1 Total number of Rides per Day of Week
+cyclistic_data %>% 
+  drop_na(start_day) %>% 
+  ggplot(aes(x= start_day )) +
+  geom_bar() +
+  labs(title = "Total usage per day", subtitle = "Figure 1") +
+  xlab('Day of Week') + ylab('Number of Rides')
+
+
+# Figure 2 Pattern of number of rides of Casual and Member riders throughout the week
+cyclistic_data %>% 
+  count(member_casual,start_day) %>% 
+  filter(n>100) %>% 
+  ggplot(aes(start_day,n,group=member_casual,fill=member_casual))  + 
+  geom_col(position = 'dodge')+
+  theme_classic() + 
+  scale_y_continuous(expand = c(0,0), labels = comma ) + 
+  xlab('Day of Week') +
+  ylab('Number of Rides') +
+  scale_fill_discrete(name = 'Subscription') +
+  labs(title = "Total usage per day per rider type", subtitle = "Figure 2")
+
+# Figure 3 Overview of Bikes choosen by Casual riders
+cyclistic_data %>% 
+  filter(member_casual== 'casual') %>% 
+  ggplot(aes(start_day,fill = rideable_type)) +
+  geom_bar() + 
+  theme_classic() + 
+  scale_y_continuous(expand =c(0,0), labels = comma)+
+  xlab('Day of Week') + ylab('Number of Rides') +
+  scale_fill_discrete(name = 'Bike Type') + 
+  labs(title = ' Overview of casual riders choice of ride in a week',subtitle = 'Figure 3')
+
+# Figure 4 Pattern of number of rides starting time by Casual and Member riders throughout the day
+cyclistic_data %>% 
+  count(member_casual,start_hour) %>% 
+  filter(n>100) %>% 
+  ggplot(aes(start_hour,n,group=member_casual,colour=member_casual)) +
+  geom_line(size=1 ) + 
+  theme_classic() + 
+  scale_x_continuous(breaks = seq(0, 24, by = 1),expand = c(0,0)) +
+  scale_y_continuous(breaks = seq(0,300000,by = 50000) ,expand =c(0,0), labels = comma)+
+  xlab('Started At') + ylab('Number of Rides') +
+  labs(title = 'Start Time of Day', subtitle = 'Figure 4')
+
+# Figure 5 Pattern of number of rides ending time by Casual and Member riders throughout the day
+
+cyclistic_data %>% 
+  count(member_casual,end_hour) %>% 
+  filter(n>100) %>% 
+  ggplot(aes(end_hour,n,group=member_casual,colour=member_casual)) +
+  geom_line( size = 1) + 
+  theme_classic() + 
+  scale_x_continuous(breaks = seq(0, 24, by = 1),expand = c(0,0)) +
+  scale_y_continuous(breaks = seq(0,300000,by = 50000) ,expand =c(0,0), labels = comma)+
+  xlab('Ended At') + ylab('Number of Rides') +
+  labs(title = 'End Time of Day', subtitle = 'Figure 5')
+
+# Figure 6 Trend of Number of Rides Trend throughout the Year by Casual and Member riders
+cyclistic_data %>% 
+  count(member_casual,month_name) %>% 
+  filter(n>100) %>% 
+  ggplot(aes(month_name,n,group=member_casual,fill=member_casual)) +
+  geom_col(position =  'Dodge') + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 45)) +
+  scale_y_continuous(expand =c(0,0), labels = comma)+
+  xlab('Month') + ylab('Number of Rides') +
+  labs(title = 'Number of Rides Trend throughout the Year', subtitle = 'Figure 6') +
+  scale_fill_discrete(name = 'Subscription')
+
+
+head(cyclistic_data %>%  
+       filter(member_casual == 'casual') %>% 
+       count(start_station_name,sort = TRUE))
+
+head(cyclistic_data %>%  
+       filter(member_casual == 'member') %>% 
+       count(start_station_name,sort = TRUE))
+
+# Figure 7 Visualizing the most used START STATION by casual and member rider
+cyclistic_data %>% 
+  count(member_casual,start_station_name) %>% 
+  filter(n<66000 & n>100) %>% 
+   ggplot(aes(start_station_name,n,group=member_casual,fill=member_casual, label = start_station_name))  + 
+  geom_col(position = 'dodge',width = 3)+
+  theme_classic() +
+  scale_y_continuous(breaks = seq(0,60000,by = 10000),expand = c(0,0), labels =comma) +
+ theme(axis.text.x=element_blank(),
+       axis.ticks.x=element_blank(),
+       axis.title.x=element_blank()) +
+  geom_text_repel(aes(label = ifelse(n >= 25000,start_station_name,"")),vjust = 1.5, nudge_x = -180) + 
+  theme(legend.position = 'none') +
+  labs(title = 'Visualizing the most used START STATION by casual and member riders',
+       subtitle = 'Figure 7')
+  
+# Figure 8 Visualizing the most used END STATION by casual and member riders
+cyclistic_data %>% 
+  count(member_casual,end_station_name) %>% 
+  filter(n<68000 & n>100) %>% 
+  ggplot(aes(end_station_name,n,group=member_casual,fill=member_casual, label = end_station_name))  + 
+  geom_col(position = 'dodge',width = 3)+
+  theme_classic() +
+  scale_y_continuous(breaks = seq(0,70000,by = 10000),expand = c(0,0), labels =comma) +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.x=element_blank()) +
+  geom_text_repel(aes(label = ifelse(n >= 30000,end_station_name,"")),vjust = 1.5, nudge_x = -180) + 
+  theme(legend.position = 'none') +
+  labs(title = 'Visualizing the most used END STATION by casual and member riders',
+       subtitle = 'Figure 8')
+
+
+head(cyclistic_data %>%  
+       filter(member_casual == 'casual') %>% 
+       count(end_station_name,sort = TRUE))
+
+head(cyclistic_data %>%  
+       filter(member_casual == 'member') %>% 
+       count(end_station_name,sort = TRUE))
+
+
+cyclistic_data %>% 
+  filter(member_casual == 'casual') %>% 
+  count(start_station_name,start_lat,start_lng,sort = TRUE) %>% 
+  slice(1:10)
+
+# Visualiazing the most used stations by Casual and Member Riders via Map
+  a<-cyclistic_data %>% 
+  filter(member_casual == 'casual') %>% 
+  count(start_station_name,start_lat,start_lng,sort = TRUE) %>% 
+  slice(1:10)
+ a <- a %>% mutate(start_lat=as.numeric(start_lat),start_lng=as.numeric(start_lng))
+ 
+ 
+  b<-cyclistic_data %>% 
+    filter(member_casual == 'member') %>% 
+    count(start_station_name,start_lat,start_lng,sort = TRUE) %>% 
+    slice(1:12)
+   b <- b[!(b$start_station_name == "" | is.na(b$start_station_name)), ]
+   b <- b %>% mutate(start_lat=as.numeric(start_lat),start_lng=as.numeric(start_lng))
+  
+   leaflet() %>% 
+  addTiles() %>% 
+  addMarkers(lng = a$start_lng,lat = a$start_lat,popup = paste(a$start_station_name,"<br>","No. of Rides",a$n)) %>% 
+  addCircleMarkers(lng = b$start_lng,lat = b$start_lat,popup = paste(b$start_station_name,"<br>","No. of Rides",b$n))
+
+
+
+
+
+
+
+
+
+
+
+
