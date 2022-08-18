@@ -1,0 +1,326 @@
+---
+title: "Case Study on Cyclistic Bike-Sharing Data for Coursera Data Analytics Course"
+author: "Ankit Dahiya"
+date: '2022-08-13'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+###### **Notice** This case study/publication is part of the capstone project under Google-Coursera’s Data Analytics course.
+
+
+# STEP 1 - Act
+###### **What topic are you exploring?** In this case study, I will explore Cyclistic’s bike-sharing offering—comparing usage data of casual riders versus annual members with the aim of uncovering insights and providing recommendations on how to turn casual riders to paying members.
+
+###### **What is the problem you are trying to solve?** The issue on hand is how to maximize ridership by converting casual riders to annual paying members. This includes identifying marketing strategies including marketing channels that casual riders may be most receptive to. The company’s director of marketing believes that the company’s long-term viability rests on this endeavor.
+
+###### **Specific task:** Determine how annual members and casual riders use Cyclistic bikes differently.
+
+###### **What metrics will you use to measure your data to achieve your objective? Who are the stakeholders?**
+
+ * ######  Company: Cyclistic - 5,824 bicycles and 692 docking stations
+* ######  Lily Moreno - Director of Marketing, Project Manager Cyclistic Executive team
+
+###### The metrics to be used to measure data include the following:
+```{css echo = FALSE}
+body {line-height: .8;}
+```
+
+* ###### Most used ride type
+* ###### Aggregate 7-day usage behavior
+* ###### Most used start and end stations
+
+###### **Who is your audience for this analysis and how does this affect your analysis process and presentation?** The audience for this presentation is Lily Moreno, Director of Marketing, and the Cyclistic Executive team. With this in mind, the presentation needs to be as detailed as possible without sacrificing clarity so that the final recommendation can come across to the decision-makers coherently.
+
+###### **How will this data help your stakeholders make decisions?** The result of this analysis will help stakeholders decide on the recommendations in this report including marketing strategies aimed at casual riders encouraging them to convert to annual membership.
+
+# STEP 2 - PREPARE
+###### **Where is your data located?** Data is stored in Amazon Web Server and is owned (first-party) by Cyclistic.
+
+###### **How is the data organized?** Data is kept in csv files separated by month. All files contain usage of Cyclistic bikes including ride type, start and end stations (with station IDs and coordinates), as well as whether users are members or casual riders. Upon inspection of the 2021 files, however, it has been determined that some start and end points do not have names and IDs. All observations, nonetheless, have lat and long coordinates.
+
+###### **Are there issues with bias or credibility in this data?** Does your data ROCCC? Apart from the unrecorded station names and IDs, the data seem to meet the ROCCC requirements. Let’s look at them one by one.
+
+* ###### **Reliable** - Despite the absence of station names and IDs in about 30% of the transactions, overall, data remains reliable as coordinates are present across all transactions. If there is a need to identify the station names and IDs of the missing values, we can simply match their coordinates to the coordinates of transactions with existing stations names/IDs.
+* ###### **Original** - Data is proprietary to Cyclistic.
+* ###### **Comprehensive** - We are only looking at 2021 data but record goes back to 2013. In 2021 alone, there were 5.55M transactions–giving us a wealth of data to work with and possibly provide accurate results even with a sample size.
+* ###### **Current** - The data remains current and valid to come up with plausible recommendations given almost similar circumstances between 2021 and 2022 in terms of mobility and economic behavior amid the pandemic.
+* ###### **Cited** - As mentioned, we are working with first-party data generated from Cyclistic’s bike-sharing technology.
+
+###### **How are you addressing licensing, privacy, security, and accessibility?** The data downloaded will be stored in my local drive and backed up in Google Drive as I go through the process. Raw data will not be shared by any means and processed data will only be displayed as tables, tibbles and visualization—keeping the raw data inaccessible to the public.
+
+###### **How did you verify the data's integrity?** Despite the identification of missing values (start/end station names and their corresponding IDs), the existence of lat/long coordinates ensures that each transaction is geospatially identifiable. The coordinates, at the same time, are complete (not rounded off). Although a specific station may have multiple variations in its coordinates–owing perhaps to the location data’s accuracy down to the smallest possible unit of measure (feet?).
+
+###### **How does it help you answer your question?** It is necessary to know this because the missing values account for 30% of the transactions. If it would be determined that accounting for this 30% is necessary to come up with a valid analysis, there is secondary data in the form of the coordinates that we can use.
+
+###### **Are there any problems with the data?** Although about 30% of transactions have missing stations names and IDs, data integrity remains intact with the presence of coordinates across all transactions. The challenge for me as the analyst is to generate the station names and IDs for the missing values if it would be required.
+
+# STEP 3 - PROCESS
+###### **Following are the steps in cleaning and manipulating the data.**
+###### 1. Load all Cyclistic 2021 data files and aggregate in one data frame entitled cyclistic_data.
+###### 2. Added start_hour , end_hour, start_day, month_name column to CSV file using R Studio.
+
+# STEP 4 - ANALYZE & STEP 5 - SHARE
+###### **By the numbers:**
+* ###### TOTAL number of borrows in 2021: 5,479,107
+* ###### Number of borrows by casual riders: 2,489,347
+* ###### Number of borrows by member riders: 2,989,749
+
+###### In terms of user type, 54.5% of riders were members, 45.4% were casual riders. A small 11 rides was unidentifiable. **Converting casual riders to members indeed has the potential to improve revenue/cash flow.**
+
+###### **Figure 1.** Weekends show the most number of usage for both casual and member riders with usage peaking on Saturday. Note: To get a better view of usage, we will need to separate the visualization between casual and member riders.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+library(dplyr)
+library(lubridate)
+library(tidyr)
+library(ggplot2)
+library(scales)
+library(ggrepel)
+library(leaflet)
+
+```
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE, paged.print=FALSE}
+Cyclistic <- read.csv("C:/Users/91880/OneDrive/Desktop/R/Case Study/Cyclistic/Cyclistic_21.csv")
+cyclistic_data <- Cyclistic
+cyclistic_data <- cyclistic_data %>% mutate(started_at = ymd_hms(started_at))
+cyclistic_data <- cyclistic_data %>% mutate(ended_at = ymd_hms(ended_at))
+cyclistic_data$start_hour <- hour(cyclistic_data$started_at)
+cyclistic_data$end_hour <- hour(cyclistic_data$ended_at)
+
+cyclistic_data$start_day <- weekdays(cyclistic_data$started_at)
+cyclistic_data$end_day <- weekdays(cyclistic_data$ended_at)
+
+cyclistic_data$month_name <- months(cyclistic_data$started_at)
+```
+
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+cyclistic_data %>% 
+  drop_na(start_day) %>% 
+  ggplot(aes(x= start_day )) +
+  geom_bar() +
+  labs(title = "Total usage per day", subtitle = "Figure 1") +
+  xlab('Day of Week') + ylab('Number of Rides')
+```
+
+
+###### **Figure 2** shows starkly the difference in bike-sharing usage between casual and member riders. More casual riders are using the bike-sharing service on Saturdays and Sundays than any other day of the week. The trend is reversed with member riders where more rides happen on weekdays (peaking on Wednesday).
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+cyclistic_data %>% 
+  count(member_casual,start_day) %>% 
+  filter(n>100) %>% 
+ggplot(aes(start_day,n,group=member_casual,fill=member_casual))  + geom_col(position = 'dodge')+
+  theme_classic() + 
+  scale_y_continuous(expand = c(0,0), labels = comma ) + 
+  xlab('Day of Week') +
+  ylab('Number of Rides') +
+  scale_fill_discrete(name = 'Subscription') +
+  labs(title = "Total usage per day per rider type", subtitle = "Figure 2")
+```
+
+###### **Figure 3** shows that casual riders primarily choose classic bikes followed by electric then docked bikes. The chart suggests an uptick in usage of all types of bikes during the weekend with classic bikes being the most preferred ride type. Docked bikes ar almost exclusive to casual riders (with only 1 docked bike borrowed by a member in 2021). Given the nature of docked bikes, we can surmise that it is the cheapest among the three bike types.
+
+```{r}
+cyclistic_data %>% 
+  filter(member_casual== 'casual') %>% 
+  ggplot(aes(start_day,fill = rideable_type)) +
+  geom_bar() + 
+  theme_classic() + 
+  scale_y_continuous(expand =c(0,0), labels = comma)+
+  xlab('Day of Week') + ylab('Number of Rides') +
+  scale_fill_discrete(name = 'Bike Type') + 
+  labs(title = ' Overview of casual riders choice of ride in a week', subtitle = 'Figure 3')
+```
+
+###### **(Casual vs Member) Trend of rides through hour of day** 
+
+###### **Figure 4** shows the number of rides by casual and member **starting at** different time of day 
+
+```{r}
+cyclistic_data %>% 
+  count(member_casual,start_hour) %>% 
+  filter(n>100) %>% 
+  ggplot(aes(start_hour,n,group=member_casual,colour=member_casual)) +
+  geom_line(size=1 ) + 
+  theme_classic() + 
+  scale_x_continuous(breaks = seq(0, 24, by = 1),expand = c(0,0)) +
+  scale_y_continuous(breaks = seq(0,300000,by = 50000) ,expand =c(0,0), labels = comma)+
+  xlab('Started At') + ylab('Number of Rides') +
+  labs(title = 'Start Time of Day', subtitle = 'Figure 4')
+```
+
+###### **Figure 5** shows the number of rides by casual and member **ended at** different time of day 
+
+```{r}
+cyclistic_data %>% 
+  count(member_casual,end_hour) %>% 
+  filter(n>100) %>% 
+  ggplot(aes(end_hour,n,group=member_casual,colour=member_casual)) +
+  geom_line( size = 1) + 
+  theme_classic() + 
+  scale_x_continuous(breaks = seq(0, 24, by = 1),expand = c(0,0)) +
+  scale_y_continuous(breaks = seq(0,300000,by = 50000) ,expand =c(0,0), labels = comma)+
+  xlab('Ended At') + ylab('Number of Rides') +
+  labs(title = 'End Time of Day', subtitle = 'Figure 5')
+```
+
+###### **Figure 6** shows the number of rides by casual and member throughout the year
+
+```{r}
+cyclistic_data %>% 
+  count(member_casual,month_name) %>% 
+  filter(n>100) %>% 
+  ggplot(aes(month_name,n,group=member_casual,fill=member_casual)) +
+  geom_col(position =  'Dodge') + 
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45)) +
+  scale_y_continuous(expand =c(0,0), labels = comma)+
+  xlab('Month') + ylab('Number of Rides') +
+  labs(title = 'Number of Rides Trend throughout the Year', subtitle = 'Figure 6') +
+  scale_fill_discrete(name = 'Subscription')
+```
+
+
+###### **(Casual vs Member) Most used start stations**
+
+###### **Note:** 12.5% and 12.1% of starts stations by casual and member riders respectively are unrecorded.
+
+* ###### Of those with values, **Streeter Dr & Grand Ave** is the most used station by casual riders (2.6%), followed by **Millenium Park** (1.3%).
+* ###### In contrast, **Clark St & Elm St** (0.8%), **Wells St & Concord Ln** (0.77%) and **Kingsbury St & Kinzie St** (0.76%) are the most used stations by member riders.
+
+###### **Most used start stations of casual riders**
+
+```{r}
+head(cyclistic_data %>%  
+  filter(member_casual == 'casual') %>% 
+  count(start_station_name,sort = TRUE))
+```
+
+###### **Most used start stations of member riders**
+
+```{r}
+head(cyclistic_data %>%  
+    filter(member_casual == 'member') %>% 
+  count(start_station_name,sort = TRUE))
+```
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cyclistic_data %>% 
+  count(member_casual,start_station_name) %>% 
+  filter(n<66000 & n>100) %>% 
+   ggplot(aes(start_station_name,n,group=member_casual,fill=member_casual, label = start_station_name))  + 
+  geom_col(position = 'dodge',width = 3)+
+  theme_classic() +
+scale_y_continuous(breaks = seq(0,60000,by = 10000),expand = c(0,0), labels =comma) +
+ theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.x=element_blank()) +
+  geom_text_repel(aes(label = ifelse(n >= 25000,start_station_name,"")),vjust = 1.5, nudge_x = -180) + 
+  theme(legend.position = 'none') +
+  labs(title = 'Visualizing the most used START STATION by casual and member riders',
+       subtitle = 'Figure 7')
+```
+
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cyclistic_data %>% 
+  count(member_casual,end_station_name) %>% 
+  filter(n<68000 & n>100) %>% 
+  ggplot(aes(end_station_name,n,group=member_casual,fill=member_casual, label = end_station_name))  + 
+  geom_col(position = 'dodge',width = 3)+
+  theme_classic() +
+  scale_y_continuous(breaks = seq(0,70000,by = 10000),expand = c(0,0), labels =comma) +
+  theme(axis.text.x=element_blank(),
+        axis.ticks.x=element_blank(),
+        axis.title.x=element_blank()) +
+  geom_text_repel(aes(label = ifelse(n >= 30000,end_station_name,"")),vjust = 1.5, nudge_x = -180) + 
+  theme(legend.position = 'none') +
+  labs(title = 'Visualizing the most used END STATION by casual and member riders',
+       subtitle = 'Figure 8')
+```
+
+
+###### These are the top 10 used Start Stations used by casual rides according to the coordinates given.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+cyclistic_data %>% 
+  filter(member_casual == 'casual') %>% 
+  count(start_station_name,start_lat,start_lng,sort = TRUE) %>% 
+  slice(1:10)
+```
+
+###### Using coordinates, however, shows us a different picture with the top six most used stations by casual riders. These are:
+
+###### 1. Streeter Dr & Grand Ave
+###### 2. Theater on the Lake
+###### 3. Millennium Park
+###### 4. Michigan Ave & Oak St
+###### 5. Lake Shore Dr & Monroe St	
+###### 6. Wells St & Concord Ln
+
+###### Stations Theater on the Lake and Millennium Park pushed back the previously 2nd (Millennium Park) and 3rd (Michigan Ave & Oak St) most used start stations. Using the actual coordinates gives us more accurate information.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+a<-cyclistic_data %>% 
+  filter(member_casual == 'casual') %>% 
+  count(start_station_name,start_lat,start_lng,sort = TRUE) %>% 
+  slice(1:10)
+ 
+  b<-cyclistic_data %>% 
+    filter(member_casual == 'member') %>% 
+    count(start_station_name,start_lat,start_lng,sort = TRUE) %>% 
+    slice(1:12)
+  
+  b <- b[!(b$start_station_name == "" | is.na(b$start_station_name)), ]
+  
+  a <- a %>% mutate(start_lat=as.numeric(start_lat),start_lng=as.numeric(start_lng))
+  b <- b %>% mutate(start_lat=as.numeric(start_lat),start_lng=as.numeric(start_lng))
+  
+   leaflet() %>% 
+  addTiles() %>% 
+  addMarkers(lng = a$start_lng,lat = a$start_lat,popup = paste(a$start_station_name,"<br>","No. of Rides",a$n)) %>% 
+  addCircleMarkers(lng = b$start_lng,lat = b$start_lat,popup = paste(b$start_station_name,"<br>","No. of Rides",b$n))
+```
+
+
+###### Notice here the positions of the markers showing that more casual riders start their journey closer to or along Lakeshore Drive, an expressway designated as part of the U.S. Highway 41 interstate highway.
+
+###### This analysis has allowed us to form observations in terms of the difference between casual and member rides.
+
+###### 1. Casual riders tend to borrow more on weekends. (See Figure 2)
+###### 2. Casual riders use docked bikes almost exclusively. (See Figure 3)
+###### 3. Many casual riders start their borrow near Lakeshore Drive, an interstate highway. (See Figure 8)
+
+
+###### From these, we can derive a number of assumptions to which we can gather insights.
+
+###### 1. Casual riders may be service workers who go to the city to work on weekends.
+###### 2. Casual riders may have tighter budgets which explains why many of them use docked bikes (which is presumably the most inexpensive ride type).
+###### 3. Casual riders borrow longer because they want to have a more cost efficient means to go around (no need to pay for parking, gas, toll fees, etc.).
+
+
+# STEP 6 - ACT
+
+###### **Recommendations** Based on the insights gathered, I am recommending the following additional action points:
+
+###### 1. At the onset, we can come up with a communication campaign (email, SMS, app marketing) exclusive to casual riders offering them a limited-time promo (discounts) when they convert to an annual membership subscription.
+* ######  Comms will be released on Friday, Saturday and Sunday to coincide with the busiest days for the casual cohort.
+
+###### 2. There may also be a need to look at pricing and determine which is more cost-efficient between casual and annual membership. If it turns out that annual membership is more cost-efficient in the long run, this may be communicated in the campaign as well.
+###### 3. Conduct qualitative study (interview) with casual riders to further understand their motivations/behavior. This is to:
+* ###### Confirm our hypothesis that casual riders are reliant on bike-sharing as their primary mode of transportation.
+* ###### Come up with a customer persona to which we will base our marketing campaign.
+###### **The End**
+
+
+
